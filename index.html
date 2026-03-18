@@ -15,8 +15,8 @@
         .credit:hover { color: #005bac; border-bottom: 1px solid #005bac; }
 
         h1 { color: #005bac; font-size: 1.6rem; border-bottom: 2px solid #005bac; padding-bottom: 10px; margin-top: 0; padding-right: 120px; }
-        h2 { font-size: 1rem; margin-top: 25px; color: #666; background: #f0f4f8; padding: 8px; border-radius: 4px; }
-        .sub-desc { font-size: 0.75rem; font-weight: normal; color: #888; margin-left: 10px; }
+        h2 { font-size: 1rem; margin-top: 25px; color: #333; background: #f0f4f8; padding: 8px; border-radius: 4px; display: flex; align-items: center; flex-wrap: wrap; }
+        .sub-desc { font-size: 0.75rem; font-weight: normal; color: #666; margin-left: 10px; }
         
         .grid-targets { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; margin-bottom: 20px; }
         .target-box { display: flex; flex-direction: column; }
@@ -66,10 +66,13 @@
     <a href="https://x.com/yucky_games" target="_blank" rel="noopener noreferrer" class="credit">made by ゆっきー</a>
     <h1>装備在庫カンリくん</h1>
 
-    <h2>[1] 各装備の確保人数を設定</h2>
+    <h2>
+        [1] 各装備の目標確保人数を設定
+        <span class="sub-desc">各装備が何人分あればよいか設定します。デフォルトで入っているのはオススメの確保人数です。</span>
+    </h2>
     <div id="target-inputs" class="grid-targets"></div>
 
-    <h2>[2] 所持数・ボックス入力 (T2〜T10)</h2>
+    <h2>[2] 装備設計図の数・選択ボックスの入力 (T2〜T10)</h2>
     <div class="scroll-x">
         <table>
             <thead><tr id="table-head"><th>アイテム</th></tr></thead>
