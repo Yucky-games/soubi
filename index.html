@@ -43,10 +43,11 @@
         .btn-copy { background: #6c757d; color: #fff; box-shadow: 0 4px 0 #495057; }
         .btn-ss { background: #28a745; color: #fff; box-shadow: 0 4px 0 #1e7e34; }
 
+        /* 入力エリアのスタイル調整 */
         #jumon-input-area { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-top: 15px; display: none; border: 2px solid #6f42c1; }
         #jumon-text-input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; font-family: monospace; box-sizing: border-box; }
+        .jumon-help-text { font-size: 0.8rem; color: #666; margin-top: 5px; margin-bottom: 15px; line-height: 1.5; }
 
-        /* モーダルスタイル */
         #modal-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; justify-content:center; align-items:center; }
         .modal-content { background:#fff; padding:25px; border-radius:12px; max-width:500px; width:90%; text-align:center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
         .modal-msg-main { font-weight: bold; margin-bottom: 8px; display: block; font-size: 1rem; }
@@ -83,7 +84,11 @@
     </div>
 
     <div id="jumon-input-area">
-        <p class="retro-font" style="margin-top:0; font-size: 1rem; font-weight: bold; color: #6f42c1;">「ふっかつのじゅもん」を貼り付けてください</p>
+        <p class="retro-font" style="margin-top:0; font-size: 1rem; font-weight: bold; color: #6f42c1; margin-bottom: 5px;">「ふっかつのじゅもん」を貼り付けてください</p>
+        <p class="retro-font jumon-help-text">
+            ふっかつのじゅもんとは？<br>
+            「計算する」を実行したときに作成した「ふっかつのじゅもん」を入力すると、前回の入力内容を復元できます
+        </p>
         <input type="text" id="jumon-text-input" placeholder="ここに英数字列を貼り付け">
         <button class="btn btn-ss" style="width:100%;" onclick="restoreFromJumon()">ふっかつする</button>
     </div>
@@ -136,32 +141,24 @@
         const invBody = document.getElementById('inventory-body');
         const tableHead = document.getElementById('table-head');
         const resultHead = document.getElementById('result-head');
-        
         TIERS.forEach(t => {
             const th = document.createElement('th');
             th.innerText = 'T' + t;
             tableHead.appendChild(th);
             resultHead.appendChild(th.cloneNode(true));
         });
-
         EQUIP_LIST.forEach((eq, i) => {
             targetDiv.innerHTML += `<div class="target-box"><label>${eq.name}</label><input type="number" id="target-${i}" value="${eq.def}" min="0" onfocus="this.select()"></div>`;
             let row = `<tr><td class="row-label">${eq.name}</td>`;
             TIERS.forEach(t => row += `<td><input type="number" id="inv-${i}-${t}" value="0" min="0" onfocus="this.select()"></td>`);
             invBody.innerHTML += row + `</tr>`;
         });
-
         let boxRow = `<tr><td class="row-label">選択ボックス</td>`;
         TIERS.forEach(t => boxRow += `<td><input type="number" id="box-${t}" value="0" min="0" onfocus="this.select()"></td>`);
         invBody.innerHTML += boxRow + `</tr>`;
-
         const hash = window.location.hash.substring(1);
-        if (hash) {
-            if (loadFromDataString(hash)) runCalculation();
-        } else {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            if (saved) loadFromDataString(saved);
-        }
+        if (hash) { if (loadFromDataString(hash)) runCalculation(); } 
+        else { const saved = localStorage.getItem(STORAGE_KEY); if (saved) loadFromDataString(saved); }
     }
 
     function generateDataString() {
@@ -169,7 +166,6 @@
         EQUIP_LIST.forEach((_, i) => data.push(parseInt(document.getElementById(`target-${i}`).value) || 0));
         EQUIP_LIST.forEach((_, i) => TIERS.forEach(t => data.push(parseInt(document.getElementById(`inv-${i}-${t}`).value) || 0)));
         TIERS.forEach(t => data.push(parseInt(document.getElementById(`box-${t}`).value) || 0));
-        
         let bytes = [];
         data.forEach(v => {
             while (v >= 0x80) { bytes.push((v & 0x7f) | 0x80); v >>>= 7; }
@@ -239,7 +235,6 @@
         localStorage.setItem(STORAGE_KEY, generateDataString());
     }
 
-    // じゅもんモーダル関連
     function showExportModal() {
         const b64 = generateDataString();
         document.getElementById('jumon-str').innerText = b64;
@@ -252,7 +247,7 @@
         try {
             await navigator.clipboard.writeText(text);
             alert("コピーしました！");
-        } catch (err) { alert("コピーに失敗しました。手動で選択してコピーしてください。"); }
+        } catch (err) { alert("コピーに失敗しました。"); }
     }
 
     function toggleJumonInput() {
@@ -302,11 +297,9 @@
                     await navigator.clipboard.write(data);
                     const oldText = btn.innerText; btn.innerText = "コピー完了！"; btn.style.backgroundColor = "#28a745";
                     setTimeout(() => { btn.innerText = oldText; btn.style.backgroundColor = "#6c757d"; }, 2000);
-                } catch (e) {
-                    alert("コピーに失敗しました。ブラウザの制限、または非HTTPS環境の可能性があります。画像保存をご利用ください。");
-                }
+                } catch (e) { alert("コピーに失敗しました。HTTPS環境で試してください。"); }
             }, "image/png");
-        } catch (err) { alert("キャンバスの生成に失敗しました。"); }
+        } catch (err) { alert("失敗しました。"); }
     }
     window.addEventListener('DOMContentLoaded', initApp);
 </script>
