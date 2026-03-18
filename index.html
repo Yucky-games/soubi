@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ブルアカ装備在庫管理アプリ</title>
+    <style>
+        body { font-family: "Helvetica Neue", Arial, sans-serif; background-color: #f0f4f8; color: #333; margin: 20px; }
+        h1 { color: #005bac; border-bottom: 2px solid #005bac; padding-bottom: 10px; }
+        h2 { font-size: 1.2rem; margin-top: 30px; color: #444; }
+        .container { max-width: 1200px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        
+        /* [1] 確保人数入力 */
+        .people-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-bottom: 20px; }
+        .input-group { display: flex; flex-direction: column; }
+        .input-group label { font-size: 0.85rem; margin-bottom: 4px; font-weight: bold; color: #555; }
+        .input-group input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+
+        /* テーブル共通 */
+        table { border-collapse: collapse; width: 100%; margin-top: 10px; font-size: 0.9rem; table-layout: fixed; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        th { background-color: #e9ecef; position: sticky; top: 0; }
+        .row-label { text-align: left; font-weight: bold; background-color: #f8f9fa; width: 120px; }
+        input[type="number"] { width: 90%; padding: 5px; border: 1px solid #ccc; border-radius: 3px; text-align: right; }
+        
+        /* ボタン */
+        .btn-calc { display: block; width: 240px; margin: 40px auto; padding: 15px; background-color: #005bac; color: white; border: none; border-radius: 5px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: background 0.3s; box-shadow: 0 4px 0 #003d73; }
+        .btn-calc:hover { background-color: #004488; transform: translateY(1px); box-shadow: 0 3px 0 #003d73; }
+        .btn-calc:active { transform: translateY(4px); box-shadow: none; }
+
+        /* [3] 結果表示 */
+        #result-area { margin-top: 40px; padding-top: 20px; border-top: 3px double #005bac; }
+        .diff-red { background-color: #ffdce0 !important; color: #d32f2f; font-weight: bold; }
+        .diff-yellow { background-color: #fff9c4 !important; color: #fbc02d; font-weight: bold; }
+        .diff-green { background-color: #e8f5e9 !important; color: #2e7d32; }
+        
+        .summary-header { background-color: #f0f4f8; font-weight: bold; }
+        .box-diff-neg { background-color: #d32f2f !important; color: white !important; font-weight: bold; }
+        .box-row { background-color: #fffde7; } /* 選択ボックス行を少し目立たせる */
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>ブルーアーカイブ 装備在庫管理</h1>
+
+    <h2>[1] 各装備の確保人数を設定</h2>
+    <div class="people-grid" id="people-inputs">
+        </div>
+
+    <h2>[2] 所持している装備・ボックス数（T1〜T10）</h2>
+    <div style="overflow-x: auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 120px;">アイテム</th>
+                    <th>T1</th><th>T2</th><th>T3</th><th>T4</th><th>T5</th><th>T6</th><th>T7</th><th>T8</th><th>T9</th><th>T10</th>
+                </tr>
+            </thead>
+            <tbody id="inventory-body">
+                </tbody>
+            <tbody id="box-input-row" class="box-row">
+                </tbody>
+        </table>
+    </div>
+
+    <button class="btn-calc" onclick="calculate()">計算を開始する</button>
+
+    <div id="result-area" style="display:none;">
+        <h2>計算結果：在庫と目標の差分</h2>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 120px;">アイテム</th>
+                        <th>T1</th><th>T2</th><th>T3</th><th>T4</th><th>T5</th><th>T6</th><th>T7</th><th>T8</th><th>T9</th><th>T10</th>
+                    </tr>
+                </thead>
+                <tbody id="result-body"></tbody>
+                <tbody id="summary-body">
+                    </tbody>
+            </table>
+        </div>
+        <div style="margin-top: 15px; font-size: 0.85rem; display: flex; gap: 20px;">
+            <span><span style="color: #d32f2f; font-weight: bold;">■</span> 赤：目標不足</span>
+            <span><span style="color: #fbc02d; font-weight: bold;">■</span> 黄：在庫100未満（不足気味）</span>
+            <span><span style="color: #2e7d32; font-weight: bold;">■</span> 緑：在庫100以上（十分）</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    const equipments = [
+        { name: "帽子", default: 3 },
+        { name: "手袋", default: 2 },
+        { name: "靴", default: 3 },
+        { name: "バッグ", default: 2 },
+        { name: "バッジ", default: 2 },
+        { name: "ヘアピン", default: 4 },
+        { name: "お守り", default: 1 },
+        { name: "時計", default: 4 },
+        { name: "ネックレス", default: 2 }
+    ];
+
+    // 1人あたりの必要数（内部ロジック）
+    const needPerPerson = {
+        1: 0, 2: 15, 3: 20, 4: 30, 5: 35, 6: 40, 7: 45, 8: 50, 9: 55, 10: 60
+    };
+
+    function init() {
+        const peopleDiv = document.getElementById('people-inputs');
+        const invBody = document.getElementById('inventory-body');
+        const boxRow = document.getElementById('box-input-row');
+
+        // 確保人数と装備行の生成
+        equipments.forEach((eq, idx) => {
+            peopleDiv.innerHTML += `
+                <div class="input-group">
+                    <label>${eq.name}</label>
+                    <input type="number" id="target-${idx}" value="${eq.default}" min="0">
+                </div>
+            `;
+
+            let row = `<tr><td class="row-label">${eq.name}</td>`;
+            for (let t = 1; t <= 10; t++) {
+                row += `<td><input type="number" id="inv-${idx}-${t}" value="0" min="0"></td>`;
+            }
+            row += `</tr>`;
+            invBody.innerHTML += row;
+        });
+
+        // 選択ボックス行を独立して生成（同じ列構造）
+        let boxHtml = `<tr><td class="row-label">選択ボックス</td>`;
+        for (let t = 1; t <= 10; t++) {
+            boxHtml += `<td><input type="number" id="box-${t}" value="0" min="0"></td>`;
+        }
+        boxHtml += `</tr>`;
+        boxRow.innerHTML = boxHtml;
+    }
+
+    function calculate() {
+        const resultBody = document.getElementById('result-body');
+        const summaryBody = document.getElementById('summary-body');
+        resultBody.innerHTML = "";
+        summaryBody.innerHTML = "";
+        
+        const tDeficits = Array(11).fill(0); 
+
+        // 1. 各装備の差分計算
+        equipments.forEach((eq, idx) => {
+            const targetCount = parseInt(document.getElementById(`target-${idx}`).value) || 0;
+            let row = `<tr><td class="row-label">${eq.name}</td>`;
+
+            for (let t = 1; t <= 10; t++) {
+                const goal = needPerPerson[t] * targetCount;
+                const have = parseInt(document.getElementById(`inv-${idx}-${t}`).value) || 0;
+                const diff = have - goal;
+
+                let colorClass = "";
+                if (diff < 0) {
+                    colorClass = "diff-red";
+                    tDeficits[t] += diff; 
+                } else if (diff < 100) {
+                    colorClass = "diff-yellow";
+                } else {
+                    colorClass = "diff-green";
+                }
+
+                row += `<td class="${colorClass}">${diff}</td>`;
+            }
+            row += `</tr>`;
+            resultBody.innerHTML += row;
+        });
+
+        // 2. サマリー行の作成（T別不足数、選択ボックス、最終差分）
+        let sumDeficitHtml = `<tr class="summary-header"><td class="row-label">T別不足数</td>`;
+        let boxStockHtml = `<tr class="box-row"><td class="row-label">選択ボックス</td>`;
+        let finalGapHtml = `<tr class="summary-header"><td class="row-label">不足数とボックスの差</td>`;
+
+        for (let t = 1; t <= 10; t++) {
+            const boxCount = parseInt(document.getElementById(`box-${t}`).value) || 0;
+            const finalGap = tDeficits[t] + boxCount;
+            
+            sumDeficitHtml += `<td>${tDeficits[t]}</td>`;
+            boxStockHtml += `<td>${boxCount}</td>`;
+            
+            const gapClass = finalGap <= 0 ? "box-diff-neg" : "";
+            finalGapHtml += `<td class="${gapClass}">${finalGap}</td>`;
+        }
+        
+        summaryBody.innerHTML = sumDeficitHtml + "</tr>" + boxStockHtml + "</tr>" + finalGapHtml + "</tr>";
+
+        document.getElementById('result-area').style.display = "block";
+        document.getElementById('result-area').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    window.onload = init;
+</script>
+
+</body>
+</html>
