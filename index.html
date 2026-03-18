@@ -291,17 +291,32 @@
     async function copyScreenshot() {
         const btn = document.getElementById('copy-btn');
         try {
-            const canvas = await generateCanvas();
-            canvas.toBlob(async (blob) => {
-                if (!blob) return;
-                try {
-                    const data = [new ClipboardItem({ [blob.type]: blob })];
-                    await navigator.clipboard.write(data);
-                    const oldText = btn.innerText; btn.innerText = "コピー完了！"; btn.style.backgroundColor = "#28a745";
-                    setTimeout(() => { btn.innerText = oldText; btn.style.backgroundColor = "#6c757d"; }, 2000);
-                } catch (e) { alert("コピーに失敗しました。HTTPS環境で試してください。"); }
-            }, "image/png");
-        } catch (err) { alert("失敗しました。"); }
+            // Safari対応: ClipboardItemにPromiseを直接渡す
+            const item = new ClipboardItem({
+                "image/png": new Promise(async (resolve, reject) => {
+                    try {
+                        const canvas = await generateCanvas();
+                        canvas.toBlob((blob) => {
+                            if (blob) resolve(blob);
+                            else reject(new Error("Blob generation failed"));
+                        }, "image/png");
+                    } catch (e) {
+                        reject(e);
+                    }
+                })
+            });
+
+            await navigator.clipboard.write([item]);
+            
+            const oldText = btn.innerText; 
+            btn.innerText = "コピー完了！"; 
+            btn.style.backgroundColor = "#28a745";
+            setTimeout(() => { btn.innerText = oldText; btn.style.backgroundColor = "#6c757d"; }, 2000);
+
+        } catch (err) {
+            console.error(err);
+            alert("コピーに失敗しました。Safariや一部のブラウザでは、HTTPS環境（GitHub Pagesなど）で公開する必要があります。");
+        }
     }
     window.addEventListener('DOMContentLoaded', initApp);
 </script>
