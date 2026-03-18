@@ -57,7 +57,10 @@
         .bg-yellow { background-color: #fffde7 !important; color: #856404; font-weight: bold; }
         .bg-green { background-color: #f1fbf2 !important; color: #2e7d32; }
         .summary-header { background: #f0f4f8; font-weight: bold; }
-        .no-scroll { overflow: visible !important; }
+        
+        /* 撮影用の一時スタイル */
+        .capture-mode { overflow: visible !important; max-width: none !important; width: max-content !important; }
+        .capture-mode table { min-width: auto !important; width: 100% !important; }
     </style>
 </head>
 <body>
@@ -99,7 +102,7 @@
         <div id="capture-target" style="padding: 20px; background: white; border-radius: 8px;">
             <h2 id="result-title" style="margin-top:0; background: none; border-bottom: 2px solid #eee;">計算結果</h2>
             <div class="scroll-x" id="table-wrapper">
-                <table>
+                <table id="result-table">
                     <thead><tr id="result-head"><th>アイテム</th></tr></thead>
                     <tbody id="result-body"></tbody>
                     <tbody id="summary-body"></tbody>
@@ -268,12 +271,28 @@
         } else { alert("エラー：じゅもんが正しくありません。"); }
     }
 
+    // 撮影用のキャンバス生成
     async function generateCanvas() {
         const target = document.getElementById('capture-target');
         const wrapper = document.getElementById('table-wrapper');
-        wrapper.classList.add('no-scroll');
-        const canvas = await html2canvas(target, { backgroundColor: "#ffffff", scale: 2 });
-        wrapper.classList.remove('no-scroll');
+        const table = document.getElementById('result-table');
+
+        // スクロール枠を一時的に「全開」にする
+        wrapper.classList.add('capture-mode');
+        
+        // ライブラリに実際のサイズを教える
+        const options = {
+            backgroundColor: "#ffffff",
+            scale: 2, // 高画質
+            width: table.scrollWidth + 40, // 左右の余白を考慮
+            windowWidth: table.scrollWidth + 40,
+            useCORS: true
+        };
+
+        const canvas = await html2canvas(target, options);
+        
+        // 元に戻す
+        wrapper.classList.remove('capture-mode');
         return canvas;
     }
 
@@ -291,31 +310,22 @@
     async function copyScreenshot() {
         const btn = document.getElementById('copy-btn');
         try {
-            // Safari対応: ClipboardItemにPromiseを直接渡す
             const item = new ClipboardItem({
                 "image/png": new Promise(async (resolve, reject) => {
                     try {
                         const canvas = await generateCanvas();
                         canvas.toBlob((blob) => {
                             if (blob) resolve(blob);
-                            else reject(new Error("Blob generation failed"));
+                            else reject(new Error("Blob failed"));
                         }, "image/png");
-                    } catch (e) {
-                        reject(e);
-                    }
+                    } catch (e) { reject(e); }
                 })
             });
-
             await navigator.clipboard.write([item]);
-            
-            const oldText = btn.innerText; 
-            btn.innerText = "コピー完了！"; 
-            btn.style.backgroundColor = "#28a745";
+            const oldText = btn.innerText; btn.innerText = "コピー完了！"; btn.style.backgroundColor = "#28a745";
             setTimeout(() => { btn.innerText = oldText; btn.style.backgroundColor = "#6c757d"; }, 2000);
-
         } catch (err) {
-            console.error(err);
-            alert("コピーに失敗しました。Safariや一部のブラウザでは、HTTPS環境（GitHub Pagesなど）で公開する必要があります。");
+            alert("コピーに失敗しました。HTTPS環境（GitHub Pagesなど）で利用してください。");
         }
     }
     window.addEventListener('DOMContentLoaded', initApp);
