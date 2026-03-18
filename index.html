@@ -3,19 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ブルアカ装備在庫管理アプリ</title>
+    <title>装備在庫カンリくん</title>
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
     <style>
-        body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; background-color: #f4f7f9; color: #333; margin: 0; padding: 20px; }
-        .container { max-width: 1100px; margin: auto; background: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        h1 { color: #005bac; font-size: 1.6rem; border-bottom: 2px solid #005bac; padding-bottom: 10px; margin-top: 0; }
-        h2 { font-size: 1rem; margin-top: 25px; color: #666; background: #f0f4f8; padding: 8px; border-radius: 4px; }
+        body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; background-color: #f4f7f9; color: #333; margin: 0; padding: 20px; position: relative; }
+        .container { max-width: 1100px; margin: auto; background: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); position: relative; }
         
+        /* クレジット（右上） */
+        .credit { position: absolute; top: 15px; right: 20px; font-size: 0.85rem; color: #666; text-decoration: none; border-bottom: 1px solid transparent; transition: 0.2s; }
+        .credit:hover { color: #005bac; border-bottom: 1px solid #005bac; }
+
+        h1 { color: #005bac; font-size: 1.6rem; border-bottom: 2px solid #005bac; padding-bottom: 10px; margin-top: 0; padding-right: 120px; }
+        h2 { font-size: 1rem; margin-top: 25px; color: #666; background: #f0f4f8; padding: 8px; border-radius: 4px; }
+        .sub-desc { font-size: 0.75rem; font-weight: normal; color: #888; margin-left: 10px; }
+        
+        /* 入力グリッド */
         .grid-targets { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; margin-bottom: 20px; }
         .target-box { display: flex; flex-direction: column; }
         .target-box label { font-size: 0.8rem; font-weight: bold; margin-bottom: 4px; }
         .target-box input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
 
+        /* テーブル */
         .scroll-x { overflow-x: auto; margin-top: 10px; border: 1px solid #ddd; background: #fff; }
         table { border-collapse: collapse; width: 100%; min-width: 800px; font-size: 0.9rem; }
         th, td { border: 1px solid #eee; padding: 10px 5px; text-align: center; }
@@ -23,22 +33,32 @@
         .row-label { text-align: left; font-weight: bold; padding-left: 10px; background: #fafafa; width: 120px; }
         input[type="number"] { width: 80%; padding: 5px; border: 1px solid #ddd; border-radius: 3px; text-align: right; }
 
-        .btn-container { display: flex; justify-content: center; gap: 15px; margin-top: 30px; flex-wrap: wrap; }
-        .btn { padding: 15px 30px; border: none; border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; min-width: 200px; }
-        
-        .btn-calc { background: #005bac; color: #fff; width: 280px; margin: 30px auto; display: block; }
+        /* ゼブラカラー */
+        #inventory-body tr:nth-child(even), #inventory-body tr:nth-child(even) .row-label { background-color: #fffde7; }
+
+        /* ボタンエリア */
+        .btn-container { display: flex; justify-content: center; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+        .btn { padding: 12px 20px; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: bold; cursor: pointer; transition: 0.2s; min-width: 160px; }
+        .btn-calc { background: #005bac; color: #fff; width: 220px; }
         .btn-calc:hover { background: #004a8d; }
         
-        .btn-copy { background: #6c757d; color: #fff; box-shadow: 0 4px 0 #495057; }
-        .btn-copy:hover { background: #5a6268; transform: translateY(1px); box-shadow: 0 3px 0 #495057; }
-        
-        .btn-ss { background: #28a745; color: #fff; box-shadow: 0 4px 0 #1e7e34; }
-        .btn-ss:hover { background: #218838; transform: translateY(1px); box-shadow: 0 3px 0 #1e7e34; }
+        /* じゅもんスタイル */
+        .retro-font { font-family: 'DotGothic16', sans-serif !important; letter-spacing: 1px; }
+        .btn-jumon { background: #6f42c1; color: #fff; box-shadow: 0 4px 0 #4e2e8a; }
+        .btn-jumon:hover { background: #5a32a3; transform: translateY(1px); box-shadow: 0 3px 0 #4e2e8a; }
+        .btn-jumon:active { transform: translateY(4px); box-shadow: none; }
 
+        .btn-copy { background: #6c757d; color: #fff; box-shadow: 0 4px 0 #495057; }
+        .btn-ss { background: #28a745; color: #fff; box-shadow: 0 4px 0 #1e7e34; }
+
+        /* じゅもん入力エリア */
+        #jumon-input-area { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-top: 15px; display: none; border: 2px solid #6f42c1; }
+        #jumon-text-input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; font-family: monospace; box-sizing: border-box; }
+
+        /* 配色 */
         .bg-red { background-color: #ffebed !important; color: #d32f2f; font-weight: bold; }
         .bg-yellow { background-color: #fffde7 !important; color: #856404; font-weight: bold; }
         .bg-green { background-color: #f1fbf2 !important; color: #2e7d32; }
-        .bg-box-input { background-color: #fffde7; }
         .summary-header { background: #f0f4f8; font-weight: bold; }
         .no-scroll { overflow: visible !important; }
     </style>
@@ -46,9 +66,11 @@
 <body>
 
 <div class="container">
-    <h1>ブルーアーカイブ 装備在庫管理</h1>
+    <a href="https://x.com/yucky_games" target="_blank" rel="noopener noreferrer" class="credit">made by ゆっきー</a>
 
-    <h2>[1] 各装備の確保人数を設定</h2>
+    <h1>装備在庫カンリくん</h1>
+
+    <h2>[1] 各装備の確保人数を設定 <span class="sub-desc">デフォルトで入っている数値はオススメの確保人数です</span></h2>
     <div id="target-inputs" class="grid-targets"></div>
 
     <h2>[2] 所持数・ボックス入力 (T2〜T10)</h2>
@@ -59,7 +81,17 @@
         </table>
     </div>
 
-    <button class="btn btn-calc" onclick="runCalculation()">計算する</button>
+    <div class="btn-container">
+        <button class="btn btn-calc" onclick="runCalculation()">計算する</button>
+        <button class="btn btn-jumon retro-font" onclick="toggleJumonInput()">ふっかつのじゅもんを入力する</button>
+    </div>
+
+    <div id="jumon-input-area">
+        <p class="retro-font" style="margin-top:0; font-size: 1rem; font-weight: bold; color: #6f42c1; margin-bottom: 5px;">保存した「ふっかつのじゅもん」を貼り付けてください</p>
+        <p class="retro-font" style="font-size: 0.8rem; color: #888; margin-top: 0; margin-bottom: 15px; line-height: 1.4;">ふっかつのじゅもんとは？<br>「計算する」を実行したときに作成した「ふっかつのじゅもん」を入力すると、前回の入力内容を復元できます</p>
+        <input type="text" id="jumon-text-input" placeholder="ここに英数字列を貼り付け">
+        <button class="btn btn-ss" style="width:100%;" onclick="restoreFromJumon()">ふっかつする</button>
+    </div>
 
     <div id="result-area" style="display:none;">
         <div id="capture-target" style="padding: 20px; background: white; border-radius: 8px;">
@@ -76,6 +108,7 @@
         <div class="btn-container">
             <button id="copy-btn" class="btn btn-copy" onclick="copyScreenshot()">画像としてコピー</button>
             <button class="btn btn-ss" onclick="takeScreenshot()">画像として保存 (PNG)</button>
+            <button class="btn btn-jumon retro-font" onclick="exportJumon()">ふっかつのじゅもん</button>
         </div>
     </div>
 </div>
@@ -94,25 +127,19 @@
         const invBody = document.getElementById('inventory-body');
         const tableHead = document.getElementById('table-head');
         const resultHead = document.getElementById('result-head');
-
         TIERS.forEach(t => {
             const th = document.createElement('th');
             th.innerText = 'T' + t;
             tableHead.appendChild(th);
             resultHead.appendChild(th.cloneNode(true));
         });
-
         EQUIP_LIST.forEach((eq, i) => {
             targetDiv.innerHTML += `<div class="target-box"><label>${eq.name}</label><input type="number" id="target-${i}" value="${eq.def}" min="0"></div>`;
-        });
-
-        EQUIP_LIST.forEach((eq, i) => {
             let row = `<tr><td class="row-label">${eq.name}</td>`;
             TIERS.forEach(t => row += `<td><input type="number" id="inv-${i}-${t}" value="0" min="0"></td>`);
             invBody.innerHTML += row + `</tr>`;
         });
-
-        let boxRow = `<tr class="bg-box-input"><td class="row-label">選択ボックス</td>`;
+        let boxRow = `<tr><td class="row-label">選択ボックス</td>`;
         TIERS.forEach(t => boxRow += `<td><input type="number" id="box-${t}" value="0" min="0"></td>`);
         invBody.innerHTML += boxRow + `</tr>`;
     }
@@ -124,12 +151,8 @@
         const resultTitle = document.getElementById('result-title');
         const now = new Date();
         resultTitle.innerText = `計算結果：目標との差分（${now.getMonth() + 1}月${now.getDate()}日時点）`;
-
-        resBody.innerHTML = "";
-        sumBody.innerHTML = "";
-        let tDeficits = {};
-        TIERS.forEach(t => tDeficits[t] = 0);
-
+        resBody.innerHTML = ""; sumBody.innerHTML = "";
+        let tDeficits = {}; TIERS.forEach(t => tDeficits[t] = 0);
         EQUIP_LIST.forEach((eq, i) => {
             const targetNum = parseInt(document.getElementById(`target-${i}`).value) || 0;
             let row = `<tr><td class="row-label">${eq.name}</td>`;
@@ -143,11 +166,9 @@
             });
             resBody.innerHTML += row + `</tr>`;
         });
-
         let htmlDeficit = `<tr class="summary-header"><td class="row-label">T別不足数</td>`;
         TIERS.forEach(t => htmlDeficit += `<td>${tDeficits[t]}</td>`);
         sumBody.innerHTML += htmlDeficit + `</tr>`;
-
         let htmlFinal = `<tr class="summary-header"><td class="row-label">不足数とボックスの差</td>`;
         TIERS.forEach(t => {
             const boxCount = parseInt(document.getElementById(`box-${t}`).value) || 0;
@@ -156,70 +177,88 @@
             htmlFinal += `<td class="${cls}">${finalVal}</td>`;
         });
         sumBody.innerHTML += htmlFinal + `</tr>`;
-
         resArea.style.display = 'block';
         window.scrollTo({ top: resArea.offsetTop, behavior: 'smooth' });
     }
 
-    // --- 共通の画像生成処理 ---
-    async function generateBlob() {
+    function exportJumon() {
+        const data = [];
+        EQUIP_LIST.forEach((_, i) => data.push(parseInt(document.getElementById(`target-${i}`).value) || 0));
+        EQUIP_LIST.forEach((_, i) => TIERS.forEach(t => data.push(parseInt(document.getElementById(`inv-${i}-${t}`).value) || 0)));
+        TIERS.forEach(t => data.push(parseInt(document.getElementById(`box-${t}`).value) || 0));
+        let bytes = [];
+        data.forEach(v => {
+            while (v >= 0x80) { bytes.push((v & 0x7f) | 0x80); v >>>= 7; }
+            bytes.push(v);
+        });
+        const compressed = pako.deflate(new Uint8Array(bytes));
+        const b64 = btoa(String.fromCharCode(...compressed)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        prompt("これがあなたの「ふっかつのじゅもん」です。コピーして保存してください", b64);
+    }
+
+    function restoreFromJumon() {
+        let jumon = document.getElementById('jumon-text-input').value.trim();
+        if (!jumon) return;
+        try {
+            jumon = jumon.replace(/-/g, '+').replace(/_/g, '/');
+            while (jumon.length % 4) jumon += '=';
+            const bin = atob(jumon);
+            const bytes = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+            const decompressed = pako.inflate(bytes);
+            let data = [], i = 0;
+            while (i < decompressed.length) {
+                let v = 0, shift = 0, b;
+                do { b = decompressed[i++]; v |= (b & 0x7f) << shift; shift += 7; } while (b & 0x80);
+                data.push(v);
+            }
+            if (data.length !== 99) throw new Error();
+            let ptr = 0;
+            EQUIP_LIST.forEach((_, i) => document.getElementById(`target-${i}`).value = data[ptr++]);
+            EQUIP_LIST.forEach((_, i) => TIERS.forEach(t => document.getElementById(`inv-${i}-${t}`).value = data[ptr++]));
+            TIERS.forEach(t => document.getElementById(`box-${t}`).value = data[ptr++]);
+            alert("ふっかつしました！");
+            document.getElementById('jumon-input-area').style.display = "none";
+        } catch (e) { alert("エラー：じゅもんが正しくありません。"); }
+    }
+
+    function toggleJumonInput() {
+        const area = document.getElementById('jumon-input-area');
+        area.style.display = (area.style.display === "none" || area.style.display === "") ? "block" : "none";
+        if(area.style.display === "block") document.getElementById('jumon-text-input').focus();
+    }
+
+    async function generateCanvas() {
         const target = document.getElementById('capture-target');
         const wrapper = document.getElementById('table-wrapper');
         wrapper.classList.add('no-scroll');
         const canvas = await html2canvas(target, { backgroundColor: "#ffffff", scale: 2 });
         wrapper.classList.remove('no-scroll');
-        return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+        return canvas;
     }
 
-    // --- 保存機能 ---
     async function takeScreenshot() {
         try {
-            const blob = await generateBlob();
+            const canvas = await generateCanvas();
             const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            const now = new Date();
-            link.download = `BA_装備在庫_${now.getMonth()+1}月${now.getDate()}日.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.download = `BA_在庫_${new Date().getMonth()+1}月${new Date().getDate()}日.png`;
             link.click();
-        } catch (err) {
-            alert("保存に失敗しました。");
-        }
+        } catch (e) { alert("保存に失敗しました。"); }
     }
 
-    // --- コピー機能（iOS/Safari対応強化版） ---
     async function copyScreenshot() {
         const btn = document.getElementById('copy-btn');
-        
-        if (!navigator.clipboard || !window.ClipboardItem) {
-            alert("このブラウザまたは接続環境(非HTTPS)では、画像コピー機能がサポートされていません。");
-            return;
-        }
-
         try {
-            // iOS SafariではClipboardItemのコンストラクタ内でPromiseを渡すのが最も確実
-            const item = new ClipboardItem({
-                "image/png": (async () => {
-                    const blob = await generateBlob();
-                    if (!blob) throw new Error("画像生成に失敗しました");
-                    return blob;
-                })()
+            const canvas = await generateCanvas();
+            canvas.toBlob(async (blob) => {
+                const item = new ClipboardItem({ "image/png": blob });
+                await navigator.clipboard.write([item]);
+                const oldText = btn.innerText; btn.innerText = "コピー完了！"; btn.style.backgroundColor = "#28a745";
+                setTimeout(() => { btn.innerText = oldText; btn.style.backgroundColor = "#6c757d"; }, 2000);
             });
-
-            await navigator.clipboard.write([item]);
-            
-            // フィードバック
-            const originalText = btn.innerText;
-            btn.innerText = "コピー完了！";
-            btn.style.backgroundColor = "#28a745";
-            setTimeout(() => {
-                btn.innerText = originalText;
-                btn.style.backgroundColor = "#6c757d";
-            }, 2000);
-        } catch (err) {
-            console.error("Copy Error:", err);
-            alert("コピーに失敗しました。ブラウザの設定やHTTPS接続を確認してください。");
-        }
+        } catch (err) { alert("コピーに失敗しました。HTTPS環境が必要です。"); }
     }
-
     window.addEventListener('DOMContentLoaded', initApp);
 </script>
 
