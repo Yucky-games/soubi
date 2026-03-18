@@ -242,7 +242,7 @@
             const canvas = await generateCanvas();
             const link = document.createElement('a');
             link.href = canvas.toDataURL("image/png");
-            link.download = `BA_在庫_${new Date().getMonth()+1}月${new Date().getDate()}日.png`;
+            link.download = `装備在庫_${new Date().getMonth()+1}月${new Date().getDate()}日.png`;
             link.click();
         } catch (e) { alert("保存に失敗しました。"); }
     }
