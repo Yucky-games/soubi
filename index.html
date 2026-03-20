@@ -1,4 +1,10 @@
 <!DOCTYPE html>
+<!-- 
+  PROJECT: 装備在庫カンリくん
+  VERSION: 1.1.0
+  UPDATE: 2024/03/20
+  AUTHOR: ゆっきー & Gemini
+-->
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
@@ -11,6 +17,7 @@
         body { font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif; background-color: #f4f7f9; color: #333; margin: 0; padding: 20px; position: relative; }
         .container { max-width: 1100px; margin: auto; background: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); position: relative; }
         
+        /* クレジット（表示は「made by ゆっきー」のみ） */
         .credit { position: absolute; top: 15px; right: 20px; font-size: 0.85rem; color: #666; text-decoration: none; border-bottom: 1px solid transparent; transition: 0.2s; }
         .credit:hover { color: #005bac; border-bottom: 1px solid #005bac; }
 
@@ -40,6 +47,9 @@
         .btn-jumon { background: #6f42c1; color: #fff; box-shadow: 0 4px 0 #4e2e8a; }
         .btn-jumon:hover { background: #5a32a3; transform: translateY(1px); }
 
+        .btn-reset { background: #dc3545; color: #fff; box-shadow: 0 4px 0 #a71d2a; }
+        .btn-reset:hover { background: #c82333; transform: translateY(1px); }
+
         .btn-copy { background: #6c757d; color: #fff; box-shadow: 0 4px 0 #495057; }
         .btn-ss { background: #28a745; color: #fff; box-shadow: 0 4px 0 #1e7e34; }
 
@@ -57,8 +67,6 @@
         .bg-yellow { background-color: #fffde7 !important; color: #856404; font-weight: bold; }
         .bg-green { background-color: #f1fbf2 !important; color: #2e7d32; }
         .summary-header { background: #f0f4f8; font-weight: bold; }
-        
-        /* 撮影用の一時スタイル */
         .capture-mode { overflow: visible !important; max-width: none !important; width: max-content !important; }
         .capture-mode table { min-width: auto !important; width: 100% !important; }
     </style>
@@ -86,6 +94,7 @@
     <div class="btn-container">
         <button class="btn btn-calc" onclick="runCalculation()">計算＆保存</button>
         <button class="btn btn-jumon retro-font" onclick="toggleJumonInput()">ふっかつのじゅもんを入力する</button>
+        <button class="btn btn-reset" onclick="confirmReset()">リセット</button>
     </div>
 
     <div id="jumon-input-area">
@@ -132,6 +141,12 @@
 </div>
 
 <script>
+    /**
+     * 装備在庫カンリくん
+     * @version 1.1.0
+     */
+    const APP_VERSION = "1.1.0";
+
     const EQUIP_LIST = [
         { name: "帽子", def: 3 }, { name: "手袋", def: 2 }, { name: "靴", def: 3 },
         { name: "バッグ", def: 2 }, { name: "バッジ", def: 2 }, { name: "ヘアピン", def: 4 },
@@ -164,6 +179,20 @@
         const hash = window.location.hash.substring(1);
         if (hash) { if (loadFromDataString(hash)) runCalculation(); } 
         else { const saved = localStorage.getItem(STORAGE_KEY); if (saved) loadFromDataString(saved); }
+    }
+
+    function confirmReset() {
+        if (confirm("すべての入力情報をリセットして初期状態に戻します。復元するには「ふっかつのじゅもん」が必要になるので保存してください。")) {
+            EQUIP_LIST.forEach((eq, i) => document.getElementById(`target-${i}`).value = eq.def);
+            EQUIP_LIST.forEach((_, i) => TIERS.forEach(t => document.getElementById(`inv-${i}-${t}`).value = 0));
+            TIERS.forEach(t => document.getElementById(`box-${t}`).value = 0);
+            document.getElementById('jumon-text-input').value = "";
+            document.getElementById('jumon-input-area').style.display = "none";
+            document.getElementById('result-area').style.display = "none";
+            localStorage.removeItem(STORAGE_KEY);
+            history.replaceState(null, null, window.location.pathname);
+            alert("初期化しました。");
+        }
     }
 
     function generateDataString() {
@@ -271,27 +300,13 @@
         } else { alert("エラー：じゅもんが正しくありません。"); }
     }
 
-    // 撮影用のキャンバス生成
     async function generateCanvas() {
         const target = document.getElementById('capture-target');
         const wrapper = document.getElementById('table-wrapper');
         const table = document.getElementById('result-table');
-
-        // スクロール枠を一時的に「全開」にする
         wrapper.classList.add('capture-mode');
-        
-        // ライブラリに実際のサイズを教える
-        const options = {
-            backgroundColor: "#ffffff",
-            scale: 2, // 高画質
-            width: table.scrollWidth + 40, // 左右の余白を考慮
-            windowWidth: table.scrollWidth + 40,
-            useCORS: true
-        };
-
+        const options = { backgroundColor: "#ffffff", scale: 2, width: table.scrollWidth + 40, windowWidth: table.scrollWidth + 40, useCORS: true };
         const canvas = await html2canvas(target, options);
-        
-        // 元に戻す
         wrapper.classList.remove('capture-mode');
         return canvas;
     }
@@ -310,23 +325,16 @@
     async function copyScreenshot() {
         const btn = document.getElementById('copy-btn');
         try {
-            const item = new ClipboardItem({
-                "image/png": new Promise(async (resolve, reject) => {
-                    try {
-                        const canvas = await generateCanvas();
-                        canvas.toBlob((blob) => {
-                            if (blob) resolve(blob);
-                            else reject(new Error("Blob failed"));
-                        }, "image/png");
-                    } catch (e) { reject(e); }
-                })
-            });
+            const item = new ClipboardItem({ "image/png": new Promise(async (resolve, reject) => {
+                try {
+                    const canvas = await generateCanvas();
+                    canvas.toBlob((blob) => { if (blob) resolve(blob); else reject(new Error("Blob failed")); }, "image/png");
+                } catch (e) { reject(e); }
+            }) });
             await navigator.clipboard.write([item]);
             const oldText = btn.innerText; btn.innerText = "コピー完了！"; btn.style.backgroundColor = "#28a745";
             setTimeout(() => { btn.innerText = oldText; btn.style.backgroundColor = "#6c757d"; }, 2000);
-        } catch (err) {
-            alert("コピーに失敗しました。HTTPS環境（GitHub Pagesなど）で利用してください。");
-        }
+        } catch (err) { alert("コピーに失敗しました。HTTPS環境で利用してください。"); }
     }
     window.addEventListener('DOMContentLoaded', initApp);
 </script>
