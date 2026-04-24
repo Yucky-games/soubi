@@ -1,15 +1,61 @@
 <!DOCTYPE html>
 <!-- 
   PROJECT: 装備在庫カンリくん
-  VERSION: 1.2.3 (UIテキスト1.1.0準拠 + 最新アルゴリズム/コピー機能)
-  UPDATE: 2024/03/21
+  VERSION: 1.2.4 (SEO metadata強化)
+  UPDATE: 2026/04/24
   AUTHOR: ゆっきー & Gemini
 -->
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>装備在庫カンリくん</title>
+    <title>ブルーアーカイブ装備在庫管理・不足計算ツール｜装備在庫カンリくん</title>
+    <meta name="description" content="ブルーアーカイブの装備設計図在庫をTier別に管理し、目標人数に対する不足数、選択ボックス考慮後の差分、おすすめ周回ステージを確認できる無料ツールです。T2〜T10対応、ふっかつのじゅもんによる復元や画像コピー・保存にも対応しています。">
+    <meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
+    <meta name="application-name" content="装備在庫カンリくん">
+    <meta name="apple-mobile-web-app-title" content="装備在庫カンリくん">
+    <meta name="theme-color" content="#005bac">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:site_name" content="装備在庫カンリくん">
+    <meta property="og:title" content="ブルーアーカイブ装備在庫管理・不足計算ツール｜装備在庫カンリくん">
+    <meta property="og:description" content="ブルーアーカイブの装備設計図在庫管理、不足数計算、選択ボックス考慮後の確認、おすすめ周回ステージの把握ができる無料ツールです。">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="ブルーアーカイブ装備在庫管理・不足計算ツール｜装備在庫カンリくん">
+    <meta name="twitter:description" content="ブルーアーカイブの装備設計図在庫をTier別に管理し、不足数やおすすめ周回ステージを確認できる無料ツールです。">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "装備在庫カンリくん",
+      "alternateName": "ブルーアーカイブ装備在庫管理ツール",
+      "applicationCategory": "UtilitiesApplication",
+      "operatingSystem": "Any",
+      "browserRequirements": "JavaScript enabled",
+      "inLanguage": "ja",
+      "isAccessibleForFree": true,
+      "softwareVersion": "1.2.4",
+      "description": "ブルーアーカイブの装備設計図在庫をTier別に管理し、目標人数に対する不足数、T別不足数合計、選択ボックス考慮後の差分、おすすめ周回ステージをまとめて確認できる無料ツールです。T2からT10までの装備設計図入力、ふっかつのじゅもんによる復元、結果画像のコピーと保存に対応しています。",
+      "featureList": [
+        "帽子、手袋、靴、バッグ、バッジ、ヘアピン、お守り、時計、ネックレスの在庫管理",
+        "T2からT10までの装備設計図と選択ボックスの入力",
+        "目標確保人数に対する不足数とT別不足数合計の自動計算",
+        "選択ボックス考慮後の差分表示",
+        "おすすめの周回ステージ提案",
+        "ふっかつのじゅもんとURLによる状態復元",
+        "計算結果の画像コピーと画像保存"
+      ],
+      "creator": {
+        "@type": "Person",
+        "name": "ゆっきー"
+      },
+      "offers": {
+        "@type": "Offer",
+        "price": 0,
+        "priceCurrency": "JPY"
+      }
+    }
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
