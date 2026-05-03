@@ -107,6 +107,7 @@
         .bg-yellow { background-color: #fffde7 !important; color: #856404; font-weight: bold; }
         .bg-green { background-color: #f1fbf2 !important; color: #2e7d32; }
         .bg-neutral { background-color: #fff !important; color: #333 !important; font-weight: normal; }
+        .bg-neutral-red { background-color: #fff !important; color: #d32f2f !important; font-weight: bold; }
         .summary-header { background: #f0f4f8; font-weight: bold; }
         .universal-needed-area { margin-top: 18px; padding: 15px; background: #f8fbff; border: 1px solid #d9e4ef; border-radius: 8px; text-align: left; }
         .universal-needed-label { display: block; margin-bottom: 10px; font-weight: bold; color: #234; }
@@ -288,7 +289,7 @@
                 const goal = REQ_PER_PERSON[t] * tN;
                 const diff = (parseInt(document.getElementById(`inv-${i}-${t}`).value) || 0) - goal;
                 const roadmapDiff = universalTiers.has(t) ? 0 : diff;
-                let cls = universalTiers.has(t) ? "bg-neutral" : (diff < 0 ? "bg-red" : (diff < 100 ? "bg-yellow" : "bg-green"));
+                let cls = universalTiers.has(t) ? (diff < 0 ? "bg-neutral-red" : "bg-neutral") : (diff < 0 ? "bg-red" : (diff < 100 ? "bg-yellow" : "bg-green"));
                 if (diff < 0) tDeficits[t] += diff;
                 if (universalTiers.has(t) && diff < 0 && UNIVERSAL_BLUEPRINT_RATES[t]) universalNeeds[eq.name] = (universalNeeds[eq.name] || 0) + ((-diff) * UNIVERSAL_BLUEPRINT_RATES[t]);
                 r += `<td class="${cls}">${diff}</td>`; snapshot.push({ tier: t, name: eq.name, diff: roadmapDiff });
