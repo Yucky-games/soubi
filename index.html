@@ -107,6 +107,10 @@
         #jumon-input-area { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-top: 15px; display: none; border: 2px solid #6f42c1; }
         #jumon-text-input { width: 100%; padding: 10px; margin-bottom: 10px; border: 1px solid #ccc; font-family: monospace; box-sizing: border-box; }
         .jumon-help-text { font-size: 0.8rem; color: #666; margin-top: 5px; margin-bottom: 15px; line-height: 1.5; }
+        .ai-prompt-details { margin: 12px 0 14px; font-size: 0.82rem; color: #4d4d4d; }
+        .ai-prompt-details summary { cursor: pointer; font-weight: bold; color: #6f42c1; margin-bottom: 8px; }
+        .ai-prompt-box { max-height: 170px; overflow: auto; white-space: pre-wrap; background: #fff; border: 1px dashed #b9a4e8; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 0.78rem; line-height: 1.6; color: #333; }
+        .btn-prompt-copy { width: 100%; margin-top: 10px; background: #e9e2fb; color: #4e2e8a; box-shadow: 0 4px 0 #c4b6e6; }
         #modal-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:1000; justify-content:center; align-items:center; }
         .modal-content { background:#fff; padding:25px; border-radius:12px; max-width:500px; width:90%; text-align:center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
         .modal-msg-main { font-weight: bold; margin-bottom: 8px; display: block; font-size: 1rem; }
@@ -176,9 +180,44 @@
         <p class="retro-font" style="margin-top:0; font-size: 1rem; font-weight: bold; color: #6f42c1; margin-bottom: 5px;">「ふっかつのじゅもん」を貼り付けてください</p>
         <p class="retro-font jumon-help-text">
             ふっかつのじゅもんとは？<br>
-            「計算＆保存」を実行したあとに発行した「ふっかつのじゅもん」を入力すると、前回の入力内容を復元できます
+            「計算＆保存」を実行したあとに発行した「ふっかつのじゅもん」を入力すると、前回の入力内容を復元できます。<br>
+            GeminiなどのAIで装備一覧のスクリーンショットから読み取った「99個の数字列」を貼り付けても、装備数と選択ボックス数を一括で反映できます。
         </p>
-        <input type="text" id="jumon-text-input" placeholder="ここに英数字列を貼り付け">
+        <details class="ai-prompt-details">
+            <summary>AI読み取り用プロンプトを見る</summary>
+            <p class="jumon-help-text">きなこもちさん作の連携ツールで使われているプロンプトです。Geminiにスクリーンショットと一緒に送ってください。</p>
+            <div class="ai-prompt-box" id="ai-prompt-text">添付した複数枚のスクリーンショットから、ゲーム「ブルーアーカイブ」の装備設計図と選択ボックスの所持数を読み取ってください。
+読み取った結果を、以下の【指定フォーマット】に従って、99個の数字がカンマ区切りで並んだテキストとして出力してください。
+
+【読み取りと出力のルール】
+1. T1の装備はすべて無視してください。対象はT2〜T10です。
+2. 画像内に見当たらないTierの装備や選択ボックス（例：T10が未実装・未所持など）は「0」として扱ってください。
+3. 選択ボックスは、書類や段ボール箱のようなアイコンで「T2」などの青い文字（T6以降は黄色等）が書かれているアイテムです。
+4. 出力は、システムにそのままコピペして使用するため、余計な解説やマークダウン表記を省き、カンマとスペース区切りの数字列のみにしてください。
+
+【指定フォーマット（全99要素の配列順）】
+以下の順番で数字を並べてください。
+
+[1] 目標人数（先頭9個は以下の固定値を出力）
+3, 2, 3, 2, 2, 4, 1, 4, 2,
+
+[2] 装備設計図の所持数（81個）
+以下の種類ごとに、T2からT10までの所持数を順番に並べる。
+・帽子（T2〜T10の9個）
+・手袋（T2〜T10の9個）
+・靴（T2〜T10の9個）
+・バッグ（T2〜T10の9個）
+・バッジ（T2〜T10の9個）
+・ヘアピン（T2〜T10の9個）
+・お守り（T2〜T10の9個）
+・時計（T2〜T10の9個）
+・ネックレス（T2〜T10の9個）
+
+[3] 選択ボックスの所持数（9個）
+・選択ボックス（T2〜T10の9個）</div>
+            <button class="btn btn-prompt-copy" onclick="copyAiPrompt()">プロンプトをコピー</button>
+        </details>
+        <textarea id="jumon-text-input" rows="3" placeholder="ふっかつのじゅもん、または99個の数字列を貼り付け"></textarea>
         <button class="btn btn-ss" style="width:100%;" onclick="restoreFromJumon()">ふっかつする</button>
     </div>
     <div id="result-area" style="display:none;">
@@ -394,8 +433,49 @@
 
     function closeCopyPreview() { document.getElementById('preview-modal').style.display = 'none'; }
     async function takeScreenshot() { try { const canvas = await generateCanvas(); const link = document.createElement('a'); link.href = canvas.toDataURL("image/png"); link.download = `装備在庫カンリくん_${new Date().getMonth()+1}月${new Date().getDate()}日.png`; link.click(); } catch (e) { alert("保存失敗"); } }
+    async function copyTextWithFallback(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+            return;
+        }
+        const textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+    }
+    async function copyAiPrompt() {
+        try {
+            await copyTextWithFallback(document.getElementById('ai-prompt-text').innerText);
+            alert("プロンプトをコピーしました！");
+        } catch (e) {
+            alert("コピーに失敗しました。手動でコピーしてください。");
+        }
+    }
     function generateDataString() { const data = []; EQUIP_LIST.forEach((_, i) => data.push(parseInt(document.getElementById(`target-${i}`).value) || 0)); EQUIP_LIST.forEach((_, i) => TIERS.forEach(t => data.push(parseInt(document.getElementById(`inv-${i}-${t}`).value) || 0))); TIERS.forEach(t => data.push(parseInt(document.getElementById(`box-${t}`).value) || 0)); data.push(getUniversalTierToggle().checked ? 1 : 0); UNIVERSAL_TIERS.forEach(tier => data.push(getUniversalTierInput(tier).checked ? 1 : 0)); let b = []; data.forEach(v => { while (v >= 0x80) { b.push((v & 0x7f) | 0x80); v >>>= 7; } b.push(v); }); return btoa(String.fromCharCode(...pako.deflate(new Uint8Array(b)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
     function loadFromDataString(str) { try { const bin = atob(str.replace(/-/g, '+').replace(/_/g, '/')); const data = [], decomp = pako.inflate(new Uint8Array(bin.length).map((_,i) => bin.charCodeAt(i))); let i = 0; while (i < decomp.length) { let v = 0, s = 0, b; do { b = decomp[i++]; v |= (b & 0x7f) << s; s += 7; } while (b & 0x80); data.push(v); } const baseLen = EQUIP_LIST.length + (EQUIP_LIST.length * TIERS.length) + TIERS.length; if (data.length < baseLen) return false; let p = 0; EQUIP_LIST.forEach((_, i) => document.getElementById(`target-${i}`).value = data[p++]); EQUIP_LIST.forEach((_, i) => TIERS.forEach(t => document.getElementById(`inv-${i}-${t}`).value = data[p++])); TIERS.forEach(t => document.getElementById(`box-${t}`).value = data[p++]); const enabled = data[p++] === 1; const selected = []; UNIVERSAL_TIERS.forEach(tier => { if (data[p++] === 1) selected.push(tier); }); setUniversalTierState(enabled, enabled ? selected : []); return true; } catch (e) { return false; } }
+    function parseAiNumberListInput(str) {
+        const normalized = str.normalize('NFKC');
+        const numbers = normalized.match(/\d+/g);
+        if (!numbers) return { matched: false };
+        const looksLikeList = /[,\s、，]/.test(normalized);
+        if (!looksLikeList) return { matched: false };
+        if (numbers.length !== 99) return { matched: true, error: `エラー：数字の数が正しくありません（現在${numbers.length}個）。AIの出力内容を確認してください。` };
+        return { matched: true, data: numbers.map(Number) };
+    }
+    function loadFromNumberList(data) {
+        const baseLen = EQUIP_LIST.length + (EQUIP_LIST.length * TIERS.length) + TIERS.length;
+        if (!Array.isArray(data) || data.length !== baseLen) return false;
+        let p = 0;
+        EQUIP_LIST.forEach((_, i) => document.getElementById(`target-${i}`).value = data[p++]);
+        EQUIP_LIST.forEach((_, i) => TIERS.forEach(t => document.getElementById(`inv-${i}-${t}`).value = data[p++]));
+        TIERS.forEach(t => document.getElementById(`box-${t}`).value = data[p++]);
+        setUniversalTierState(false);
+        return true;
+    }
     
     function confirmReset() {
         if (confirm("すべての入力情報をリセットして初期状態に戻します。復元するには「ふっかつのじゅもん」が必要になるので保存してください。")) {
@@ -417,16 +497,31 @@
     function restoreFromJumon() {
         let j = document.getElementById('jumon-text-input').value.trim();
         if (j.includes('#')) j = j.split('#')[1];
+        const aiNumberList = parseAiNumberListInput(j);
+        if (aiNumberList.matched) {
+            if (aiNumberList.error) {
+                alert(aiNumberList.error);
+                return;
+            }
+            if (loadFromNumberList(aiNumberList.data)) {
+                alert("AI読み取り結果を反映しました！");
+                document.getElementById('jumon-input-area').style.display = "none";
+                runCalculation();
+            } else {
+                alert("エラー：AI読み取り結果を反映できませんでした。");
+            }
+            return;
+        }
         if (loadFromDataString(j)) {
             alert("ふっかつしました！");
             document.getElementById('jumon-input-area').style.display = "none";
             runCalculation();
-        } else { alert("エラー：じゅもんが正しくありません。"); }
+        } else { alert("エラー：じゅもん、または99個の数字列が正しくありません。"); }
     }
 
     function showExportModal() { document.getElementById('jumon-str').innerText = generateDataString(); document.getElementById('modal-overlay').style.display = 'flex'; }
     function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
-    async function copyToClipboard(type) { await navigator.clipboard.writeText(type === 'url' ? window.location.origin + window.location.pathname + "#" + document.getElementById('jumon-str').innerText : document.getElementById('jumon-str').innerText); alert("コピーしました！"); }
+    async function copyToClipboard(type) { await copyTextWithFallback(type === 'url' ? window.location.origin + window.location.pathname + "#" + document.getElementById('jumon-str').innerText : document.getElementById('jumon-str').innerText); alert("コピーしました！"); }
     window.addEventListener('DOMContentLoaded', initApp);
 </script>
 </body>
