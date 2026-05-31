@@ -18,6 +18,13 @@
 
       gtag('config', 'G-2VJVBVP9PW');
     </script>
+    <script>
+      window.PendakoAnalytics = {
+        appId: "ba_soubi_zaiko_kanri",
+        version: "1.3.2"
+      };
+    </script>
+    <script defer src="https://analytics.pendako.workers.dev/pendako.js"></script>
     <title>ブルーアーカイブ装備在庫管理・不足計算ツール｜装備在庫カンリくん</title>
     <meta name="description" content="ブルーアーカイブの装備設計図在庫をTier別に管理し、目標人数に対する不足数、選択ボックス考慮後の差分、おすすめ周回ステージを確認できる無料ツールです。T2〜T10対応、ふっかつのじゅもんによる復元や画像コピー・保存にも対応しています。">
     <meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1">
@@ -160,7 +167,7 @@
     </h2>
     <div id="target-inputs" class="grid-targets"></div>
     <div class="tier-setting-panel">
-        <label class="tier-setting-toggle"><input type="checkbox" id="use-universal-tier-toggle" onchange="toggleUniversalTierSettings()">万能設計図でどうにかするTierを設定する</label>
+        <label class="tier-setting-toggle"><input type="checkbox" id="use-universal-tier-toggle" data-pa-event="universal_tier_toggle" onchange="toggleUniversalTierSettings()">万能設計図でどうにかするTierを設定する</label>
         <div id="universal-tier-settings" class="tier-setting-options">
             <p class="tier-setting-help">目標との差分の背景を白にして、不足分に応じた万能設計図の必要数を算出します。</p>
             <div id="universal-tier-grid" class="tier-setting-grid"></div>
@@ -172,9 +179,9 @@
     </h2>
     <div class="scroll-x"><table><thead><tr id="table-head"><th>アイテム</th></tr></thead><tbody id="inventory-body"></tbody></table></div>
     <div class="btn-container">
-        <button class="btn btn-calc" onclick="runCalculation()">計算＆保存</button>
-        <button class="btn btn-jumon retro-font" onclick="toggleJumonInput()">ふっかつのじゅもんを入力する</button>
-        <button class="btn btn-reset" onclick="confirmReset()">リセット</button>
+        <button class="btn btn-calc" data-pa-event="calculate_save_click" onclick="runCalculation()">計算＆保存</button>
+        <button class="btn btn-jumon retro-font" data-pa-event="backup_input_show_click" onclick="toggleJumonInput()">ふっかつのじゅもんを入力する</button>
+        <button class="btn btn-reset" data-pa-event="reset_click" onclick="confirmReset()">リセット</button>
     </div>
     <div id="jumon-input-area">
         <p class="retro-font" style="margin-top:0; font-size: 1rem; font-weight: bold; color: #6f42c1; margin-bottom: 5px;">「ふっかつのじゅもん」を貼り付けてください</p>
@@ -215,10 +222,10 @@
 
 [3] 選択ボックスの所持数（9個）
 ・選択ボックス（T2〜T10の9個）</div>
-            <button class="btn btn-prompt-copy" onclick="copyAiPrompt()">プロンプトをコピー</button>
+            <button class="btn btn-prompt-copy" data-pa-event="prompt_copy_click" onclick="copyAiPrompt()">プロンプトをコピー</button>
         </details>
         <textarea id="jumon-text-input" rows="3" placeholder="ふっかつのじゅもん、または99個の数字列を貼り付け"></textarea>
-        <button class="btn btn-ss" style="width:100%;" onclick="restoreFromJumon()">ふっかつする</button>
+        <button class="btn btn-ss" style="width:100%;" data-pa-event="restore_click" onclick="restoreFromJumon()">ふっかつする</button>
     </div>
     <div id="result-area" style="display:none;">
         <div id="capture-target" style="padding: 20px; background: white; border-radius: 8px;">
@@ -228,9 +235,9 @@
             <div id="recommendation-display" class="recommendation-area" style="display:none;"><span class="recommendation-label">おすすめの周回ステージ（最高効率は保証しません）</span><div id="stage-list" class="stage-flow"></div></div>
         </div>
         <div class="btn-container">
-            <button id="copy-btn" class="btn btn-copy" onclick="handleCopyAction()">画像としてコピー</button>
-            <button class="btn btn-ss" onclick="takeScreenshot()">画像として保存</button>
-            <button class="btn btn-jumon retro-font" onclick="showExportModal()">ふっかつのじゅもん</button>
+            <button id="copy-btn" class="btn btn-copy" data-pa-event="image_copy_click" onclick="handleCopyAction()">画像としてコピー</button>
+            <button class="btn btn-ss" data-pa-event="image_save_click" onclick="takeScreenshot()">画像として保存</button>
+            <button class="btn btn-jumon retro-font" data-pa-event="backup_show_click" onclick="showExportModal()">ふっかつのじゅもん</button>
         </div>
     </div>
 </div>
@@ -241,8 +248,8 @@
         <span class="modal-msg-sub">URLからアクセスするか、「ふっかつのじゅもんを入力する」に入力すれば現在の情報を復元できます。</span>
         <div id="jumon-str" class="jumon-display"></div>
         <div class="btn-container" style="margin-top:0;">
-            <button class="btn btn-ss" style="min-width:120px;" onclick="copyToClipboard('url')">URLをコピー</button>
-            <button class="btn btn-copy" style="min-width:120px;" onclick="copyToClipboard('jumon')">じゅもんのみ</button>
+            <button class="btn btn-ss" style="min-width:120px;" data-pa-event="backup_url_copy_click" onclick="copyToClipboard('url')">URLをコピー</button>
+            <button class="btn btn-copy" style="min-width:120px;" data-pa-event="backup_code_copy_click" onclick="copyToClipboard('jumon')">じゅもんのみ</button>
             <button class="btn" style="min-width:120px; background:#ccc;" onclick="closeModal()">閉じる</button>
         </div>
     </div>
